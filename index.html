@@ -9,16 +9,26 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-:root{
+:root,:root[data-theme="dark"]{
   --bg:#0A0A0A; --bg2:#111111; --bg3:#1A1A1A;
   --fg:#EDEAE2; --fg2:#8C8C86; --fg3:#4A4A46;
   --border:#222220; --border2:#33332F;
   --accent:#C8FF00; --accent-dim:rgba(200,255,0,0.08); --accent-border:rgba(200,255,0,0.25);
+  --nav-bg:rgba(10,10,10,0.85);
+  --mono:'JetBrains Mono',monospace; --sans:'Inter',sans-serif; --display:'Bebas Neue',sans-serif;
+}
+:root[data-theme="light"]{
+  --bg:#F6F4EE; --bg2:#ECE9E0; --bg3:#E2DED2;
+  --fg:#16160F; --fg2:#5C5B52; --fg3:#8C8A7E;
+  --border:#D9D5C7; --border2:#C5C0AE;
+  --accent:#4A6B00; --accent-dim:rgba(74,107,0,0.08); --accent-border:rgba(74,107,0,0.3);
+  --nav-bg:rgba(246,244,238,0.85);
   --mono:'JetBrains Mono',monospace; --sans:'Inter',sans-serif; --display:'Bebas Neue',sans-serif;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 html{scroll-behavior:smooth;}
-body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:16px;line-height:1.6;overflow-x:hidden;}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:16px;line-height:1.6;overflow-x:hidden;
+  transition:background 0.3s ease,color 0.3s ease;}
 ::selection{background:var(--accent);color:var(--bg);}
 ::-webkit-scrollbar{width:3px;}
 ::-webkit-scrollbar-track{background:var(--bg);}
@@ -30,7 +40,8 @@ button{font-family:inherit;}
 
 /* ── NAV ─────────────────────────────────────────────────────── */
 nav{position:fixed;top:0;left:0;right:0;z-index:200;display:flex;align-items:center;justify-content:space-between;
-  padding:1.1rem 3rem;border-bottom:1px solid var(--border);background:rgba(10,10,10,0.85);backdrop-filter:blur(16px);}
+  padding:1.1rem 3rem;border-bottom:1px solid var(--border);background:var(--nav-bg);backdrop-filter:blur(16px);
+  transition:background 0.3s ease,border-color 0.3s ease;}
 .nav-logo{font-family:var(--display);font-size:1.3rem;letter-spacing:0.04em;text-decoration:none;cursor:pointer;}
 .nav-logo span{color:var(--accent);}
 .nav-index{display:flex;align-items:center;gap:0;list-style:none;}
@@ -44,6 +55,11 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;display:flex;align-items:cen
   display:flex;align-items:center;gap:0.5rem;}
 .nav-clock .dot{width:5px;height:5px;border-radius:50%;background:var(--accent);animation:pulse 2s infinite;}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.25}}
+.theme-toggle{display:flex;align-items:center;gap:0.4rem;background:none;border:1px solid var(--border2);color:var(--fg2);
+  font-family:var(--mono);font-size:0.62rem;text-transform:uppercase;letter-spacing:0.08em;padding:0.4rem 0.75rem;
+  cursor:pointer;transition:all 0.2s ease;}
+.theme-toggle:hover{color:var(--accent);border-color:var(--accent-border);background:var(--accent-dim);}
+.theme-toggle svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;}
 @media(max-width:1100px){.nav-index{display:none;}}
 @media(max-width:768px){nav{padding:1rem 1.25rem;}.nav-clock{display:none;}}
 
@@ -288,6 +304,11 @@ footer{padding:2.25rem 3rem;border-top:1px solid var(--border);display:flex;alig
   </ul>
   <div class="nav-right">
     <div class="nav-clock"><div class="dot"></div><span id="nav-clock-text">PKT —:—</span></div>
+    <button class="theme-toggle" id="theme-toggle-btn" onclick="toggleTheme()" aria-label="Toggle light and dark mode">
+      <svg id="theme-icon-dark" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      <svg id="theme-icon-light" viewBox="0 0 24 24" style="display:none;"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+      <span id="theme-label">Light</span>
+    </button>
   </div>
 </nav>
 
@@ -576,6 +597,43 @@ const GITHUB_USER = 'sheikhharis100';
 // Set this to your deployed Cloudflare Worker URL to enable the live chatbot.
 // Leave empty and the chat will show a clear "not connected" message instead of failing silently.
 const PROXY_URL = 'https://portfolio-chatbot.sheikhharis9066.workers.dev';
+
+// ════════════════════════════════════════════════════════════════
+// THEME TOGGLE — light/dark, persisted, respects system preference
+// ════════════════════════════════════════════════════════════════
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  const dark = document.getElementById('theme-icon-dark');
+  const light = document.getElementById('theme-icon-light');
+  const label = document.getElementById('theme-label');
+  if (theme === 'light') {
+    dark.style.display = 'none';
+    light.style.display = '';
+    label.textContent = 'Dark';
+  } else {
+    dark.style.display = '';
+    light.style.display = 'none';
+    label.textContent = 'Light';
+  }
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+  const next = current === 'dark' ? 'light' : 'dark';
+  applyTheme(next);
+  try { localStorage.setItem('portfolio-theme', next); } catch (e) {}
+}
+
+(function initTheme() {
+  let saved = null;
+  try { saved = localStorage.getItem('portfolio-theme'); } catch (e) {}
+  if (saved === 'light' || saved === 'dark') {
+    applyTheme(saved);
+  } else {
+    const prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+    applyTheme(prefersLight ? 'light' : 'dark');
+  }
+})();
 
 // ════════════════════════════════════════════════════════════════
 // SMOOTH SCROLL (works inside iframes and once deployed)
